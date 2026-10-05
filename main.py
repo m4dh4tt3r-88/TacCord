@@ -177,7 +177,7 @@ class Plugin:
             try:
                 await cls.shared_js_tab.ensure_open()
                 await cls.shared_js_tab.evaluate(
-                    f"window.DECKCORD.dispatchNotification(JSON.parse('{payload}'));"
+                    f"window.DECKCORD.dispatchNotification({payload});"
                 )
             except Exception:
                 logger.exception("Dispatching notification failed")
@@ -234,7 +234,7 @@ class Plugin:
         payload = dumps({"title": "TacCord", "body": "Error while posting screenshot"})
         await cls.shared_js_tab.ensure_open()
         await cls.shared_js_tab.evaluate(
-            f"DeckyPluginLoader.toaster.toast(JSON.parse('{payload}'));"
+            f"DeckyPluginLoader.toaster.toast({payload});"
         )
 
     @classmethod
