@@ -25,7 +25,7 @@ from tab_utils.tab import (
     boot_discord,
     setOSK,
 )
-from tab_utils.cdp import Tab, get_tab
+from tab_utils.cdp import Tab, get_tab, get_tabs
 from discord_client.event_handler import EventHandler
 
 logger.setLevel(INFO)
@@ -50,10 +50,18 @@ async def initialize():
     create_task(watchdog(tab))
 
 
+async def tab_exists(tab: Tab) -> bool:
+    return any(t.id == tab.id for t in await get_tabs())
+
+
 async def watchdog(tab: Tab):
     while True:
-        while not tab.websocket.closed:
-            await sleep(1)
+        # A Steam UI restart destroys the tab without necessarily closing our websocket, so check both.
+        while not tab.websocket.closed and await tab_exists(tab):
+            await sleep(3)
+
+        if not await tab_exists(tab):
+            break
 
         logger.info("Discord tab websocket is no longer open. Trying to reconnect...")
 
@@ -91,7 +99,15 @@ class Plugin:
     @classmethod
     async def _main(cls):
         logger.info("Starting Deckcord backend")
-        await initialize()
+        while True:
+            try:
+                await initialize()
+                break
+
+            except Exception:
+                logger.exception("Initializing Discord failed. Retrying...")
+                await sleep(2)
+
         logger.info("Discord initialized")
 
         cls.server.add_routes(

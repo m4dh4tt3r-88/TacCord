@@ -3,9 +3,21 @@ from pathlib import Path
 from aiohttp import ClientSession # type: ignore
 from .cdp import Tab, get_tab, get_tab_lambda
 from asyncio import sleep
+from decky import logger # type: ignore
 from ssl import create_default_context
 
 async def create_discord_tab():
+    # The SharedJSContext websocket can reset mid-call (e.g. Steam UI restarting), so retry the whole attempt.
+    while True:
+        try:
+            return await _create_discord_tab()
+
+        except Exception as e:
+            logger.warning(f"Creating the Discord tab failed ({e!r}). Retrying...")
+            await sleep(1)
+
+
+async def _create_discord_tab():
     while True:
         try:
             tab = await get_tab("SharedJSContext")
@@ -16,6 +28,14 @@ async def create_discord_tab():
 
     await tab.open_websocket()
 
+    try:
+        return await _create_discord_tab_loop(tab)
+
+    finally:
+        await tab.close_websocket()
+
+
+async def _create_discord_tab_loop(tab: Tab):
     while True:
         await tab.evaluate("""
                     if (window.DISCORD_TAB !== undefined) {
@@ -50,7 +70,6 @@ async def create_discord_tab():
             discord_tab = await get_tab_lambda(lambda tab: tab.url == "data:text/plain,to_be_discord")
 
             if discord_tab:
-                await tab.close_websocket()
                 return discord_tab
 
         except:
