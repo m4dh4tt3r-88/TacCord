@@ -135,6 +135,11 @@ class EventHandler:
     async def _logout(self, data):
         self.logged_in = False
 
+    def reset(self):
+        self.loaded = False
+        self.logged_in = False
+        self.state_changed_event.set()
+
     async def _voice_channel_select(self, data):
         self.vc_channel_id = data["channelId"]
         if not self.vc_channel_id:
@@ -169,4 +174,4 @@ class EventHandler:
         await self.notification_queue.put(data)
 
     async def _webrtc_mic_forward(self, data):
-        self.webrtc = data
+        self.webrtc = data

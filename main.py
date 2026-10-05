@@ -72,6 +72,7 @@ async def watchdog(tab: Tab):
         except:
             break
 
+    Plugin.evt_handler.reset()
     logger.info("Discord has died. Re-initializing...")
 
     while True:
@@ -173,10 +174,13 @@ class Plugin:
             payload = dumps(
                 {"title": notification["title"], "body": notification["body"]}
             )
-            await cls.shared_js_tab.ensure_open()
-            await cls.shared_js_tab.evaluate(
-                f"window.DECKCORD.dispatchNotification(JSON.parse('{payload}'));"
-            )
+            try:
+                await cls.shared_js_tab.ensure_open()
+                await cls.shared_js_tab.evaluate(
+                    f"window.DECKCORD.dispatchNotification(JSON.parse('{payload}'));"
+                )
+            except Exception:
+                logger.exception("Dispatching notification failed")
 
     @classmethod
     async def connect_ws(cls):

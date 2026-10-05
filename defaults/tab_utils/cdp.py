@@ -22,7 +22,19 @@ class Tab:
         self.client = None
     
     async def ensure_open(self):
-        if self.websocket.closed:
+        # Steam gives tabs a new id (and websocket url) when its UI restarts, so re-resolve by title.
+        tabs = await get_tabs()
+        live = next((t for t in tabs if t.id == self.id), None)
+        stale = live is None
+
+        if stale:
+            live = next((t for t in tabs if t.title == self.title), None)
+            if not live:
+                raise ValueError(f"Tab {self.title} not found")
+
+            self.id, self.ws_url = live.id, live.ws_url
+
+        if stale or self.websocket.closed:
             await self.open_websocket()
 
     async def open_websocket(self):
